@@ -24,3 +24,11 @@ class PermissionDeniedError(AppError):
 
 class TooManyAttemptsError(AppError):
     pass
+
+
+class InvalidFileError(AppError):
+    pass
+
+
+class FileTooLargeError(AppError):
+    pass

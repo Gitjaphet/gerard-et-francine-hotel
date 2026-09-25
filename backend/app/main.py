@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,6 +31,12 @@ app.add_middleware(
 
 
 register_exception_handlers(app)
+
+# En production, Nginx sert les médias directement : Python ne s'en occupe qu'en local.
+if settings.app_env == "development":
+    settings.media_root.mkdir(parents=True, exist_ok=True)
+    app.mount(settings.media_url, StaticFiles(directory=settings.media_root), name="media")
+
 app.include_router(api_router)
 
 

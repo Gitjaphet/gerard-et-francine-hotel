@@ -5,6 +5,8 @@ from app.core.exceptions import (
     AppError,
     AuthenticationError,
     ConflictError,
+    FileTooLargeError,
+    InvalidFileError,
     NotFoundError,
     PermissionDeniedError,
     TooManyAttemptsError,
@@ -15,6 +17,8 @@ STATUS_CODES: dict[type[AppError], int] = {
     PermissionDeniedError: 403,
     NotFoundError: 404,
     ConflictError: 409,
+    FileTooLargeError: 413,
+    InvalidFileError: 422,
     TooManyAttemptsError: 429,
 }
 
