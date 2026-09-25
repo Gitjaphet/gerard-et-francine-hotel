@@ -1,9 +1,11 @@
+from collections.abc import Sequence
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
-from app.models.hotel import HotelSettings, HotelSettingsTranslation
-from app.repositories.hotel import HotelSettingsRepository
-from app.schemas.hotel import HotelSettingsTranslationWrite, HotelSettingsUpdate
+from app.models.hotel import HotelSettings, HotelSettingsTranslation, SocialLink
+from app.repositories.hotel import HotelSettingsRepository, SocialLinkRepository
+from app.schemas.hotel import HotelSettingsTranslationWrite, HotelSettingsUpdate, SocialLinkWrite
 
 
 class HotelSettingsService:
@@ -47,3 +49,37 @@ class HotelSettingsService:
             else:
                 for name, value in values.items():
                     setattr(current, name, value)
+
+
+class SocialLinkService:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+        self.repo = SocialLinkRepository(db)
+
+    async def list(self, *, active_only: bool = False) -> Sequence[SocialLink]:
+        return await self.repo.list(active_only=active_only)
+
+    async def get(self, link_id: int) -> SocialLink:
+        link = await self.repo.get(link_id)
+        if link is None:
+            raise NotFoundError(f"Lien social {link_id} introuvable.")
+        return link
+
+    async def create(self, data: SocialLinkWrite) -> SocialLink:
+        link = await self.repo.add(SocialLink(**data.model_dump()))
+        await self.db.commit()
+        await self.db.refresh(link)
+        return link
+
+    async def update(self, link_id: int, data: SocialLinkWrite) -> SocialLink:
+        link = await self.get(link_id)
+        for name, value in data.model_dump().items():
+            setattr(link, name, value)
+        await self.db.commit()
+        await self.db.refresh(link)
+        return link
+
+    async def delete(self, link_id: int) -> None:
+        link = await self.get(link_id)
+        await self.repo.delete(link)
+        await self.db.commit()

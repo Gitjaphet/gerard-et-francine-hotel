@@ -1,4 +1,5 @@
 from datetime import datetime, time
+from enum import StrEnum
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
@@ -73,3 +74,31 @@ class HotelSettingsRead(HotelSettingsFields):
     id: int
     translations: list[HotelSettingsTranslationRead]
     updated_at: datetime
+
+
+# --- Réseaux sociaux ---------------------------------------------------------
+
+
+class SocialPlatform(StrEnum):
+    FACEBOOK = "facebook"
+    INSTAGRAM = "instagram"
+    TRIPADVISOR = "tripadvisor"
+    BOOKING = "booking"
+    GOOGLE = "google"
+    YOUTUBE = "youtube"
+    TIKTOK = "tiktok"
+    X = "x"
+    LINKEDIN = "linkedin"
+
+
+class SocialLinkWrite(BaseModel):
+    platform: SocialPlatform
+    url: str = Field(max_length=500, pattern=r"^https://")
+    position: int = Field(default=0, ge=0)
+    is_active: bool = True
+
+
+class SocialLinkRead(SocialLinkWrite):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int

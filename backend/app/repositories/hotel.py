@@ -32,3 +32,15 @@ class SocialLinkRepository:
             query = query.where(SocialLink.is_active.is_(True))
         result = await self.db.execute(query)
         return result.scalars().all()
+
+    async def get(self, link_id: int) -> SocialLink | None:
+        return await self.db.get(SocialLink, link_id)
+
+    async def add(self, link: SocialLink) -> SocialLink:
+        self.db.add(link)
+        await self.db.flush()
+        return link
+
+    async def delete(self, link: SocialLink) -> None:
+        await self.db.delete(link)
+        await self.db.flush()
