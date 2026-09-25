@@ -20,3 +20,7 @@ class AuthenticationError(AppError):
 
 class PermissionDeniedError(AppError):
     pass
+
+
+class TooManyAttemptsError(AppError):
+    pass

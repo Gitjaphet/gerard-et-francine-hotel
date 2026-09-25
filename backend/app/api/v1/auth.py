@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 
 from app.api.deps import SESSION_COOKIE, CurrentUser, DbSession
 from app.core.config import get_settings
@@ -29,8 +29,14 @@ def _cookie_options() -> dict[str, object]:
 
 
 @router.post("/login")
-async def login(data: LoginRequest, response: Response, service: ServiceDep) -> UserRead:
-    user = await service.authenticate(data.email, data.password)
+async def login(
+    data: LoginRequest,
+    request: Request,
+    response: Response,
+    service: ServiceDep,
+) -> UserRead:
+    ip_address = request.client.host if request.client else "unknown"
+    user = await service.authenticate(data.email, data.password, ip_address)
     response.set_cookie(
         key=SESSION_COOKIE,
         value=create_access_token(str(user.id)),

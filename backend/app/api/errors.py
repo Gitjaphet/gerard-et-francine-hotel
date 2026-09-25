@@ -7,6 +7,7 @@ from app.core.exceptions import (
     ConflictError,
     NotFoundError,
     PermissionDeniedError,
+    TooManyAttemptsError,
 )
 
 STATUS_CODES: dict[type[AppError], int] = {
@@ -14,6 +15,7 @@ STATUS_CODES: dict[type[AppError], int] = {
     PermissionDeniedError: 403,
     NotFoundError: 404,
     ConflictError: 409,
+    TooManyAttemptsError: 429,
 }
 
 
