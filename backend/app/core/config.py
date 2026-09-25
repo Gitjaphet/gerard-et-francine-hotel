@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     app_env: Literal["development", "staging", "production"] = "development"
     app_debug: bool = False
     app_secret_key: str = Field(min_length=32)
+    access_token_expire_minutes: int = Field(default=480, gt=0)
 
     database_url: str
 
