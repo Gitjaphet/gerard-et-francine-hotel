@@ -8,6 +8,7 @@ from app.models.room import (
     RoomTypePhoto,
     RoomTypeTranslation,
 )
+from app.models.season import Season, SeasonTranslation
 from app.models.user import User
 
 __all__ = [
@@ -21,6 +22,8 @@ __all__ = [
     "RoomType",
     "RoomTypePhoto",
     "RoomTypeTranslation",
+    "Season",
+    "SeasonTranslation",
     "SocialLink",
     "User",
 ]
