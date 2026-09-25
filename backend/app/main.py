@@ -1,7 +1,10 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.db.session import get_db
 
 settings = get_settings()
 
@@ -25,3 +28,12 @@ app.add_middleware(
 @app.get("/health", tags=["system"])
 def health_check() -> dict[str, str]:
     return {"status": "ok", "env": settings.app_env}
+
+
+@app.get("/health/db", tags=["system"])
+async def health_check_db(db: AsyncSession = Depends(get_db)) -> dict[str, str]:
+    try:
+        await db.execute(text("SELECT 1"))
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="database unavailable") from exc
+    return {"status": "ok", "database": "connected"}
