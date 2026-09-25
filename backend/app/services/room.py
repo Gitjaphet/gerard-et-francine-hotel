@@ -3,10 +3,18 @@ from collections.abc import Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, NotFoundError
+from app.core.i18n import Locale
 from app.models.room import Amenity, AmenityTranslation, RoomType, RoomTypeTranslation
 from app.repositories.room import AmenityRepository, RoomTypeRepository
-from app.schemas.room import AmenityWrite, RoomTypeTranslationWrite, RoomTypeWrite
-from app.services.common import sync_translations
+from app.schemas.room import (
+    AmenityPublic,
+    AmenityWrite,
+    RoomTypePublic,
+    RoomTypeTextFields,
+    RoomTypeTranslationWrite,
+    RoomTypeWrite,
+)
+from app.services.common import pick_translation, sync_translations
 
 
 class AmenityService:
@@ -112,10 +120,50 @@ class RoomTypeService:
         if missing:
             ids = ", ".join(str(amenity_id) for amenity_id in sorted(missing))
             raise NotFoundError(f"Équipement(s) introuvable(s) : {ids}.")
-        order = {amenity_id: index for index, amenity_id in enumerate(amenity_ids)}
-        return sorted(amenities, key=lambda amenity: order[amenity.id])
+        return amenities
 
     async def _save(self, room_type: RoomType) -> RoomType:
         await self.db.commit()
         await self.db.refresh(room_type)
         return room_type
+
+
+class RoomTypePublicService:
+    def __init__(self, db: AsyncSession) -> None:
+        self.repo = RoomTypeRepository(db)
+
+    async def list(self, locale: Locale) -> list[RoomTypePublic]:
+        room_types = await self.repo.list(active_only=True)
+        return [self._to_public(room_type, locale) for room_type in room_types]
+
+    async def get_by_slug(self, locale: Locale, slug: str) -> RoomTypePublic:
+        room_type = await self.repo.get_active_by_slug(locale, slug)
+        if room_type is None:
+            raise NotFoundError("Chambre introuvable.")
+        return self._to_public(room_type, locale)
+
+    @staticmethod
+    def _to_public(room_type: RoomType, locale: Locale) -> RoomTypePublic:
+        translation = pick_translation(room_type.translations, locale)
+        if translation is None:
+            raise NotFoundError("Chambre introuvable.")
+
+        amenities = []
+        for amenity in room_type.amenities:
+            amenity_translation = pick_translation(amenity.translations, locale)
+            name = amenity_translation.name if amenity_translation else amenity.code
+            amenities.append(AmenityPublic(code=amenity.code, icon=amenity.icon, name=name))
+
+        texts = RoomTypeTextFields.model_validate(translation, from_attributes=True)
+        return RoomTypePublic(
+            **texts.model_dump(),
+            id=room_type.id,
+            slug=translation.slug,
+            locale=locale,
+            content_locale=translation.locale,
+            slugs={t.locale: t.slug for t in room_type.translations},
+            max_adults=room_type.max_adults,
+            max_children=room_type.max_children,
+            size_m2=room_type.size_m2,
+            amenities=amenities,
+        )

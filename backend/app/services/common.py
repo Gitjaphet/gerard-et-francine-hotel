@@ -1,7 +1,7 @@
 from collections.abc import Callable, Sequence
 from typing import Any, Protocol
 
-from app.core.i18n import Locale
+from app.core.i18n import DEFAULT_LOCALE, Locale
 
 
 class LocalizedRow(Protocol):
@@ -35,3 +35,9 @@ def sync_translations[T: LocalizedRow](
         else:
             for name, value in values.items():
                 setattr(current, name, value)
+
+
+def pick_translation[T: LocalizedRow](rows: Sequence[T], locale: Locale) -> T | None:
+    """Renvoie la traduction demandée, sinon celle de la langue par défaut."""
+    by_locale = {row.locale: row for row in rows}
+    return by_locale.get(locale) or by_locale.get(DEFAULT_LOCALE)

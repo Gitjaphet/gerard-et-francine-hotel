@@ -80,7 +80,7 @@ class RoomType(TimestampMixin, Base):
     )
     amenities: Mapped[list[Amenity]] = relationship(
         secondary=room_type_amenity,
-        order_by=Amenity.position,
+        order_by=[Amenity.position, Amenity.id],
         lazy="selectin",
     )
 
