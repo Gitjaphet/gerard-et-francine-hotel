@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field
@@ -21,6 +22,10 @@ class Settings(BaseSettings):
     database_url: str
 
     cors_origins: list[str] = []
+
+    media_root: Path = Path("media")
+    media_url: str = "/media"
+    max_upload_mb: int = Field(default=15, gt=0, le=50)
 
 
 @lru_cache
