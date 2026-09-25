@@ -15,6 +15,8 @@ select = ["E", "W", "F", "I", "N", "UP", "B", "C4", "SIM", "ASYNC", "S", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
+# Les variables d'environnement doivent être définies avant les imports de l'application.
+"tests/conftest.py" = ["E402"]
 # SQLAlchemy résout les relations au chargement de la classe : les références
 # vers des modèles déclarés plus bas doivent rester entre guillemets.
 "app/models/**" = ["UP037"]
