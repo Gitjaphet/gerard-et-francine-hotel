@@ -1,8 +1,11 @@
+from decimal import Decimal
+
 from sqlalchemy import (
     CheckConstraint,
     Column,
     ForeignKey,
     Index,
+    Numeric,
     SmallInteger,
     String,
     Table,
@@ -66,6 +69,7 @@ class RoomType(TimestampMixin, Base):
         CheckConstraint("max_children >= 0", name="max_children_not_negative"),
         CheckConstraint("units_count >= 1", name="units_count_positive"),
         CheckConstraint("size_m2 IS NULL OR size_m2 > 0", name="size_m2_positive"),
+        CheckConstraint("base_price IS NULL OR base_price > 0", name="base_price_positive"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -73,6 +77,7 @@ class RoomType(TimestampMixin, Base):
     max_children: Mapped[int] = mapped_column(SmallInteger, default=0)
     size_m2: Mapped[int | None] = mapped_column(SmallInteger)
     units_count: Mapped[int] = mapped_column(SmallInteger, default=1)
+    base_price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     position: Mapped[int] = mapped_column(default=0)
     is_active: Mapped[bool] = mapped_column(default=False)
 

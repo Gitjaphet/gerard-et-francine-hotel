@@ -1,6 +1,15 @@
 from datetime import date
+from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, Computed, ForeignKey, SmallInteger, String, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    Computed,
+    ForeignKey,
+    Numeric,
+    SmallInteger,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import DATERANGE, ExcludeConstraint, Range
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -27,6 +36,10 @@ class Season(TimestampMixin, Base):
     )
     min_nights: Mapped[int | None] = mapped_column(SmallInteger)
 
+    rates: Mapped[list["SeasonRate"]] = relationship(
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
     translations: Mapped[list["SeasonTranslation"]] = relationship(
         back_populates="season",
         cascade="all, delete-orphan",
@@ -44,3 +57,16 @@ class SeasonTranslation(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(100))
 
     season: Mapped[Season] = relationship(back_populates="translations")
+
+
+class SeasonRate(TimestampMixin, Base):
+    __tablename__ = "season_rate"
+    __table_args__ = (CheckConstraint("price > 0", name="price_positive"),)
+
+    season_id: Mapped[int] = mapped_column(
+        ForeignKey("season.id", ondelete="CASCADE"), primary_key=True
+    )
+    room_type_id: Mapped[int] = mapped_column(
+        ForeignKey("room_type.id", ondelete="CASCADE"), primary_key=True
+    )
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
