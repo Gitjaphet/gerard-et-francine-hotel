@@ -2,11 +2,13 @@ from sqlalchemy import (
     CheckConstraint,
     Column,
     ForeignKey,
+    Index,
     SmallInteger,
     String,
     Table,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,6 +16,7 @@ from app.core.i18n import Locale
 from app.db.base import Base
 from app.db.mixins import TimestampMixin
 from app.db.types import LocaleType, locale_check
+from app.models.media import MediaAsset
 
 room_type_amenity = Table(
     "room_type_amenity",
@@ -83,6 +86,11 @@ class RoomType(TimestampMixin, Base):
         order_by=[Amenity.position, Amenity.id],
         lazy="selectin",
     )
+    photos: Mapped[list["RoomTypePhoto"]] = relationship(
+        order_by="[RoomTypePhoto.position, RoomTypePhoto.media_asset_id]",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
 
 class RoomTypeTranslation(TimestampMixin, Base):
@@ -106,3 +114,26 @@ class RoomTypeTranslation(TimestampMixin, Base):
     meta_description: Mapped[str | None] = mapped_column(String(160))
 
     room_type: Mapped[RoomType] = relationship(back_populates="translations")
+
+
+class RoomTypePhoto(Base):
+    __tablename__ = "room_type_photo"
+    __table_args__ = (
+        Index(
+            "uq_room_type_photo_one_cover_per_room",
+            "room_type_id",
+            unique=True,
+            postgresql_where=text("is_cover"),
+        ),
+    )
+
+    room_type_id: Mapped[int] = mapped_column(
+        ForeignKey("room_type.id", ondelete="CASCADE"), primary_key=True
+    )
+    media_asset_id: Mapped[int] = mapped_column(
+        ForeignKey("media_asset.id", ondelete="CASCADE"), primary_key=True
+    )
+    position: Mapped[int] = mapped_column(default=0)
+    is_cover: Mapped[bool] = mapped_column(default=False)
+
+    media_asset: Mapped[MediaAsset] = relationship(lazy="selectin")

@@ -48,10 +48,10 @@ async def dispose_engine() -> AsyncIterator[None]:
 
 @pytest.fixture(autouse=True)
 async def clean_database() -> AsyncIterator[None]:
-    yield
     tables = ", ".join(table.name for table in reversed(Base.metadata.sorted_tables))
     async with engine.begin() as connection:
         await connection.execute(text(f"TRUNCATE {tables} RESTART IDENTITY CASCADE"))
+    yield
 
 
 @pytest.fixture
