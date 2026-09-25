@@ -55,6 +55,12 @@ class RoomTypeRepository:
     async def get(self, room_type_id: int) -> RoomType | None:
         return await self.db.get(RoomType, room_type_id)
 
+    async def get_many(self, room_type_ids: Sequence[int]) -> Sequence[RoomType]:
+        if not room_type_ids:
+            return []
+        result = await self.db.execute(select(RoomType).where(RoomType.id.in_(room_type_ids)))
+        return result.scalars().all()
+
     async def get_active_by_slug(self, locale: Locale, slug: str) -> RoomType | None:
         result = await self.db.execute(
             select(RoomType)
