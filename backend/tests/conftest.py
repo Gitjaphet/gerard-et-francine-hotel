@@ -15,7 +15,7 @@ os.environ["APP_ENV"] = "development"
 os.environ["APP_DEBUG"] = "false"
 os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-for-automated-tests-only")
 
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 
 import pytest
 from alembic import command
@@ -23,9 +23,12 @@ from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 
+from app.core.roles import UserRole
+from app.core.security import hash_password
 from app.db.base import Base
-from app.db.session import engine
+from app.db.session import AsyncSessionLocal, engine
 from app.main import app
+from app.models.user import User
 
 if not os.environ["DATABASE_URL"].endswith("_test"):
     raise RuntimeError("Les tests doivent tourner sur une base dont le nom finit par _test.")
@@ -56,3 +59,42 @@ async def client() -> AsyncIterator[AsyncClient]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as http_client:
         yield http_client
+
+
+TEST_PASSWORD = "correct-horse-battery-staple"
+
+UserFactory = Callable[..., Awaitable[User]]
+
+
+@pytest.fixture
+def make_user() -> UserFactory:
+    async def factory(
+        email: str = "owner@example.com",
+        role: UserRole = UserRole.OWNER,
+        is_active: bool = True,
+    ) -> User:
+        async with AsyncSessionLocal() as db:
+            user = User(
+                email=email,
+                full_name="Test User",
+                role=role,
+                is_active=is_active,
+                hashed_password=hash_password(TEST_PASSWORD),
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+            return user
+
+    return factory
+
+
+@pytest.fixture
+async def owner_client(client: AsyncClient, make_user: UserFactory) -> AsyncClient:
+    user = await make_user()
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": user.email, "password": TEST_PASSWORD},
+    )
+    assert response.status_code == 200
+    return client

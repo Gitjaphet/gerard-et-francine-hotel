@@ -14,7 +14,8 @@ extend-exclude = ["migrations/versions"]
 select = ["E", "W", "F", "I", "N", "UP", "B", "C4", "SIM", "ASYNC", "S", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]
+# Les tests utilisent des assert et des mots de passe factices.
+"tests/**" = ["S101", "S105", "S106"]
 # Les variables d'environnement doivent être définies avant les imports de l'application.
 "tests/conftest.py" = ["E402"]
 # SQLAlchemy résout les relations au chargement de la classe : les références
