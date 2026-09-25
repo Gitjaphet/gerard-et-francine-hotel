@@ -16,6 +16,7 @@ os.environ["APP_DEBUG"] = "false"
 os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-for-automated-tests-only")
 
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from pathlib import Path
 
 import pytest
 from alembic import command
@@ -29,6 +30,8 @@ from app.db.base import Base
 from app.db.session import AsyncSessionLocal, engine
 from app.main import app
 from app.models.user import User
+from app.storage.deps import get_storage
+from app.storage.local import LocalStorage
 
 if not os.environ["DATABASE_URL"].endswith("_test"):
     raise RuntimeError("Les tests doivent tourner sur une base dont le nom finit par _test.")
@@ -98,3 +101,11 @@ async def owner_client(client: AsyncClient, make_user: UserFactory) -> AsyncClie
     )
     assert response.status_code == 200
     return client
+
+
+@pytest.fixture
+def media_root(tmp_path: Path) -> Iterator[Path]:
+    storage = LocalStorage(tmp_path, "/media")
+    app.dependency_overrides[get_storage] = lambda: storage
+    yield tmp_path
+    app.dependency_overrides.pop(get_storage, None)

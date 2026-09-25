@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.core.i18n import Locale
 from app.core.text import slugify
 from app.schemas.common import check_translations
+from app.schemas.media import MediaVariantRead
 
 # --- Équipements -------------------------------------------------------------
 
@@ -81,14 +82,35 @@ class RoomTypeFields(BaseModel):
     is_active: bool = False
 
 
+class RoomPhotoWrite(BaseModel):
+    media_asset_id: int
+    is_cover: bool = False
+
+
+class RoomPhotoRead(RoomPhotoWrite):
+    model_config = ConfigDict(from_attributes=True)
+
+    position: int
+
+
 class RoomTypeWrite(RoomTypeFields):
     amenity_ids: list[int] = []
+    photos: list[RoomPhotoWrite] = []
     translations: list[RoomTypeTranslationWrite] = Field(min_length=1)
 
     @model_validator(mode="after")
     def validate_content(self) -> Self:
         check_translations(self.translations, require_default=True)
         self.amenity_ids = list(dict.fromkeys(self.amenity_ids))
+
+        photo_ids = [photo.media_asset_id for photo in self.photos]
+        if len(photo_ids) != len(set(photo_ids)):
+            raise ValueError("Une même photo ne peut être ajoutée qu'une seule fois.")
+        covers = [photo for photo in self.photos if photo.is_cover]
+        if len(covers) > 1:
+            raise ValueError("Une seule photo de couverture est autorisée.")
+        if self.photos and not covers:
+            self.photos[0].is_cover = True
         return self
 
 
@@ -98,6 +120,7 @@ class RoomTypeRead(RoomTypeFields):
     id: int
     translations: list[RoomTypeTranslationRead]
     amenities: list[AmenityRead]
+    photos: list[RoomPhotoRead]
     updated_at: datetime
 
 
@@ -110,6 +133,14 @@ class AmenityPublic(BaseModel):
     name: str
 
 
+class RoomPhotoPublic(BaseModel):
+    alt: str
+    width: int
+    height: int
+    is_cover: bool
+    variants: dict[str, MediaVariantRead]
+
+
 class RoomTypePublic(RoomTypeTextFields):
     id: int
     slug: str
@@ -120,3 +151,4 @@ class RoomTypePublic(RoomTypeTextFields):
     max_children: int
     size_m2: int | None
     amenities: list[AmenityPublic]
+    photos: list[RoomPhotoPublic]

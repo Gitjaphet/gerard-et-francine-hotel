@@ -1,4 +1,3 @@
-from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -6,20 +5,9 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.main import app
-from app.storage.deps import get_storage
-from app.storage.local import LocalStorage
 from tests.test_images import make_image
 
 MEDIA_URL = "/api/v1/admin/media"
-
-
-@pytest.fixture
-def media_root(tmp_path: Path) -> Iterator[Path]:
-    storage = LocalStorage(tmp_path, "/media")
-    app.dependency_overrides[get_storage] = lambda: storage
-    yield tmp_path
-    app.dependency_overrides.pop(get_storage, None)
 
 
 def stored_files(root: Path) -> list[Path]:

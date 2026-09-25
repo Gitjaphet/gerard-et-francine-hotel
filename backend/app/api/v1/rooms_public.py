@@ -6,12 +6,16 @@ from app.api.deps import DbSession
 from app.core.i18n import DEFAULT_LOCALE, Locale
 from app.schemas.room import RoomTypePublic
 from app.services.room import RoomTypePublicService
+from app.storage.base import Storage
+from app.storage.deps import get_storage
 
 router = APIRouter(prefix="/rooms", tags=["public"])
 
 
-def get_room_public_service(db: DbSession) -> RoomTypePublicService:
-    return RoomTypePublicService(db)
+def get_room_public_service(
+    db: DbSession, storage: Annotated[Storage, Depends(get_storage)]
+) -> RoomTypePublicService:
+    return RoomTypePublicService(db, storage)
 
 
 ServiceDep = Annotated[RoomTypePublicService, Depends(get_room_public_service)]

@@ -2,13 +2,13 @@ import asyncio
 from collections.abc import Sequence
 from uuid import uuid4
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.exceptions import FileTooLargeError, InvalidFileError, NotFoundError
 from app.core.images import InvalidImageError, ProcessedImage, process_image
 from app.models.media import MediaAsset, MediaAssetTranslation
+from app.repositories.media import MediaAssetRepository
 from app.schemas.media import (
     MediaAssetRead,
     MediaTranslationRead,
@@ -23,16 +23,20 @@ def variant_key(storage_key: str, variant: str) -> str:
     return f"{storage_key}/{variant}.webp"
 
 
+def variant_urls(asset: MediaAsset, storage: Storage) -> dict[str, MediaVariantRead]:
+    return {
+        name: MediaVariantRead(url=storage.url(variant_key(asset.storage_key, name)), **size)
+        for name, size in asset.variants.items()
+    }
+
+
 def to_media_read(asset: MediaAsset, storage: Storage) -> MediaAssetRead:
     return MediaAssetRead(
         id=asset.id,
         original_filename=asset.original_filename,
         width=asset.width,
         height=asset.height,
-        variants={
-            name: MediaVariantRead(url=storage.url(variant_key(asset.storage_key, name)), **size)
-            for name, size in asset.variants.items()
-        },
+        variants=variant_urls(asset, storage),
         translations=[MediaTranslationRead.model_validate(t) for t in asset.translations],
     )
 
@@ -41,13 +45,13 @@ class MediaService:
     def __init__(self, db: AsyncSession, storage: Storage) -> None:
         self.db = db
         self.storage = storage
+        self.repo = MediaAssetRepository(db)
 
     async def list(self) -> Sequence[MediaAsset]:
-        result = await self.db.execute(select(MediaAsset).order_by(MediaAsset.id.desc()))
-        return result.scalars().all()
+        return await self.repo.list()
 
     async def get(self, asset_id: int) -> MediaAsset:
-        asset = await self.db.get(MediaAsset, asset_id)
+        asset = await self.repo.get(asset_id)
         if asset is None:
             raise NotFoundError(f"Média {asset_id} introuvable.")
         return asset
@@ -77,7 +81,7 @@ class MediaService:
                 },
                 translations=[],
             )
-            self.db.add(asset)
+            await self.repo.add(asset)
             await self.db.commit()
         except Exception:
             await self.db.rollback()
@@ -98,7 +102,7 @@ class MediaService:
     async def delete(self, asset_id: int) -> None:
         asset = await self.get(asset_id)
         storage_key, names = asset.storage_key, list(asset.variants)
-        await self.db.delete(asset)
+        await self.repo.delete(asset)
         await self.db.commit()
         await self._delete_variants(storage_key, names)
 
