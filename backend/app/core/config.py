@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     media_url: str = "/media"
     max_upload_mb: int = Field(default=15, gt=0, le=50)
 
+    hotel_timezone: str = "Indian/Antananarivo"
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -78,6 +79,7 @@ class RoomTypeFields(BaseModel):
     max_children: int = Field(default=0, ge=0, le=20)
     size_m2: int | None = Field(default=None, gt=0, le=1000)
     units_count: int = Field(default=1, ge=1, le=100)
+    base_price: Decimal | None = Field(default=None, gt=0, max_digits=10, decimal_places=2)
     position: int = Field(default=0, ge=0)
     is_active: bool = False
 

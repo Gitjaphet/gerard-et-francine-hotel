@@ -32,3 +32,7 @@ class InvalidFileError(AppError):
 
 class FileTooLargeError(AppError):
     pass
+
+
+class BusinessRuleError(AppError):
+    pass
