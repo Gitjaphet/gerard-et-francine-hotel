@@ -12,3 +12,11 @@ class NotFoundError(AppError):
 
 class ConflictError(AppError):
     pass
+
+
+class AuthenticationError(AppError):
+    pass
+
+
+class PermissionDeniedError(AppError):
+    pass

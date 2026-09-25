@@ -1,0 +1,50 @@
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Response, status
+
+from app.api.deps import SESSION_COOKIE, CurrentUser, DbSession
+from app.core.config import get_settings
+from app.core.security import create_access_token
+from app.schemas.auth import LoginRequest, UserRead
+from app.services.auth import AuthService
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def get_auth_service(db: DbSession) -> AuthService:
+    return AuthService(db)
+
+
+ServiceDep = Annotated[AuthService, Depends(get_auth_service)]
+
+
+def _cookie_options() -> dict[str, object]:
+    settings = get_settings()
+    return {
+        "httponly": True,
+        "secure": settings.app_env != "development",
+        "samesite": "lax",
+        "path": "/",
+    }
+
+
+@router.post("/login")
+async def login(data: LoginRequest, response: Response, service: ServiceDep) -> UserRead:
+    user = await service.authenticate(data.email, data.password)
+    response.set_cookie(
+        key=SESSION_COOKIE,
+        value=create_access_token(str(user.id)),
+        max_age=get_settings().access_token_expire_minutes * 60,
+        **_cookie_options(),
+    )
+    return UserRead.model_validate(user)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(response: Response) -> None:
+    response.delete_cookie(key=SESSION_COOKIE, **_cookie_options())
+
+
+@router.get("/me")
+async def read_current_user(user: CurrentUser) -> UserRead:
+    return UserRead.model_validate(user)

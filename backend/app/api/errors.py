@@ -1,9 +1,17 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.core.exceptions import AppError, ConflictError, NotFoundError
+from app.core.exceptions import (
+    AppError,
+    AuthenticationError,
+    ConflictError,
+    NotFoundError,
+    PermissionDeniedError,
+)
 
 STATUS_CODES: dict[type[AppError], int] = {
+    AuthenticationError: 401,
+    PermissionDeniedError: 403,
     NotFoundError: 404,
     ConflictError: 409,
 }
