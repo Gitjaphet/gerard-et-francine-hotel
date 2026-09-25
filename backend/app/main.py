@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -37,7 +39,7 @@ def health_check() -> dict[str, str]:
 
 
 @app.get("/health/db", tags=["system"])
-async def health_check_db(db: AsyncSession = Depends(get_db)) -> dict[str, str]:
+async def health_check_db(db: Annotated[AsyncSession, Depends(get_db)]) -> dict[str, str]:
     try:
         await db.execute(text("SELECT 1"))
     except Exception as exc:

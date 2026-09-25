@@ -17,7 +17,9 @@ MIN_PASSWORD_LENGTH = 12
 def ask_password(email: str) -> str:
     password = getpass("Mot de passe : ")
     if len(password) < MIN_PASSWORD_LENGTH:
-        raise SystemExit(f"Le mot de passe doit contenir au moins {MIN_PASSWORD_LENGTH} caractères.")
+        raise SystemExit(
+            f"Le mot de passe doit contenir au moins {MIN_PASSWORD_LENGTH} caractères."
+        )
     if email.lower() in password.lower():
         raise SystemExit("Le mot de passe ne doit pas contenir l'adresse email.")
     if password != getpass("Confirmation : "):

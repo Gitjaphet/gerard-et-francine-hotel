@@ -11,9 +11,7 @@ class HotelSettingsRepository:
         self.db = db
 
     async def get(self) -> HotelSettings | None:
-        result = await self.db.execute(
-            select(HotelSettings).order_by(HotelSettings.id).limit(1)
-        )
+        result = await self.db.execute(select(HotelSettings).order_by(HotelSettings.id).limit(1))
         return result.scalar_one_or_none()
 
     async def add(self, settings: HotelSettings) -> HotelSettings:

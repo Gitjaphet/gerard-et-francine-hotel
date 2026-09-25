@@ -6,7 +6,7 @@ from pwdlib import PasswordHash
 from app.core.config import get_settings
 
 ALGORITHM = "HS256"
-TOKEN_TYPE = "access"
+TOKEN_TYPE = "access"  # noqa: S105 — type de jeton, pas un secret
 
 password_hash = PasswordHash.recommended()
 

@@ -1,6 +1,7 @@
 from datetime import datetime, time
-from enum import StrEnum
 from decimal import Decimal
+from enum import StrEnum
+from typing import Self
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
@@ -59,7 +60,7 @@ class HotelSettingsUpdate(HotelSettingsFields):
     translations: list[HotelSettingsTranslationWrite] = []
 
     @model_validator(mode="after")
-    def check_translations(self) -> "HotelSettingsUpdate":
+    def check_translations(self) -> Self:
         locales = [t.locale for t in self.translations]
         if len(locales) != len(set(locales)):
             raise ValueError("Chaque langue ne peut apparaître qu'une seule fois.")
