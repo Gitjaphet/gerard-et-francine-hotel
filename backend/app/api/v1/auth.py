@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal, TypedDict
 
 from fastapi import APIRouter, Depends, Request, Response, status
 
@@ -18,7 +18,14 @@ def get_auth_service(db: DbSession) -> AuthService:
 ServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 
-def _cookie_options() -> dict[str, object]:
+class CookieOptions(TypedDict):
+    httponly: bool
+    secure: bool
+    samesite: Literal["lax", "strict", "none"]
+    path: str
+
+
+def _cookie_options() -> CookieOptions:
     settings = get_settings()
     return {
         "httponly": True,
