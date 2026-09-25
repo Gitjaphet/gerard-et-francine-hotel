@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 
-from app.api.v1 import hotel, social_links
+from app.api.v1 import hotel, hotel_public, social_links
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(hotel.router)
 api_router.include_router(social_links.router)
+api_router.include_router(hotel_public.router)

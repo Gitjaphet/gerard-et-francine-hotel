@@ -102,3 +102,39 @@ class SocialLinkRead(SocialLinkWrite):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+
+
+# --- Vue publique (site) -----------------------------------------------------
+
+
+class SocialLinkPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    platform: SocialPlatform
+    url: str
+
+
+class HotelPublicInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+    stars: int | None
+    email: str
+    phone: str | None
+    whatsapp: str | None
+    address: str | None
+    city: str | None
+    country: str
+    latitude: Decimal | None
+    longitude: Decimal | None
+    google_maps_url: str | None
+    check_in_time: time
+    check_out_time: time
+
+
+class HotelPublic(HotelPublicInfo, HotelTranslationFields):
+    locale: Locale
+    content_locale: Locale
+    available_locales: list[Locale]
+    mga_rate: Decimal | None
+    social_links: list[SocialLinkPublic]

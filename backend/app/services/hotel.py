@@ -3,9 +3,18 @@ from collections.abc import Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
+from app.core.i18n import DEFAULT_LOCALE, Locale
 from app.models.hotel import HotelSettings, HotelSettingsTranslation, SocialLink
 from app.repositories.hotel import HotelSettingsRepository, SocialLinkRepository
-from app.schemas.hotel import HotelSettingsTranslationWrite, HotelSettingsUpdate, SocialLinkWrite
+from app.schemas.hotel import (
+    HotelPublic,
+    HotelPublicInfo,
+    HotelSettingsTranslationRead,
+    HotelSettingsTranslationWrite,
+    HotelSettingsUpdate,
+    SocialLinkPublic,
+    SocialLinkWrite,
+)
 
 
 class HotelSettingsService:
@@ -83,3 +92,31 @@ class SocialLinkService:
         link = await self.get(link_id)
         await self.repo.delete(link)
         await self.db.commit()
+
+
+class HotelPublicService:
+    def __init__(self, db: AsyncSession) -> None:
+        self.settings = HotelSettingsService(db)
+        self.links = SocialLinkRepository(db)
+
+    async def get(self, locale: Locale) -> HotelPublic:
+        settings = await self.settings.get()
+        links = await self.links.list(active_only=True)
+
+        by_locale = {t.locale: t for t in settings.translations}
+        translation = by_locale.get(locale) or by_locale.get(DEFAULT_LOCALE)
+        texts = (
+            HotelSettingsTranslationRead.model_validate(translation).model_dump(exclude={"locale"})
+            if translation
+            else {}
+        )
+
+        return HotelPublic(
+            **HotelPublicInfo.model_validate(settings).model_dump(),
+            **texts,
+            locale=locale,
+            content_locale=translation.locale if translation else DEFAULT_LOCALE,
+            available_locales=[loc for loc in Locale if loc in by_locale],
+            mga_rate=settings.eur_to_mga_rate if settings.show_mga_prices else None,
+            social_links=[SocialLinkPublic.model_validate(link) for link in links],
+        )
