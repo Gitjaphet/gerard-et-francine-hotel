@@ -2,7 +2,7 @@ from typing import Annotated, Literal, TypedDict
 
 from fastapi import APIRouter, Depends, Request, Response, status
 
-from app.api.deps import SESSION_COOKIE, CurrentUser, DbSession
+from app.api.deps import SESSION_COOKIE, CurrentUser, DbSession, client_ip
 from app.core.config import get_settings
 from app.core.security import create_access_token
 from app.schemas.auth import LoginRequest, UserRead
@@ -42,8 +42,7 @@ async def login(
     response: Response,
     service: ServiceDep,
 ) -> UserRead:
-    ip_address = request.client.host if request.client else "unknown"
-    user = await service.authenticate(data.email, data.password, ip_address)
+    user = await service.authenticate(data.email, data.password, client_ip(request))
     response.set_cookie(
         key=SESSION_COOKIE,
         value=create_access_token(str(user.id)),

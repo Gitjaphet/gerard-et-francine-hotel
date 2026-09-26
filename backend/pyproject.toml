@@ -40,3 +40,6 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 addopts = "-q --strict-markers"
+# Une dépréciation de SQLAlchemy fait échouer les tests : on la corrige tout de suite,
+# plutôt que de la découvrir le jour où la fonction disparaît.
+filterwarnings = ["error::sqlalchemy.exc.SADeprecationWarning"]

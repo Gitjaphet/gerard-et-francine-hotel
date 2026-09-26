@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 from datetime import UTC, datetime, timedelta
 
 import jwt
@@ -44,3 +46,13 @@ def decode_access_token(token: str) -> str | None:
     if payload.get("type") != TOKEN_TYPE:
         return None
     return str(payload["sub"])
+
+
+def hash_ip(ip_address: str) -> str:
+    """Empreinte non réversible d'une IP : permet de compter, jamais de retrouver l'adresse.
+
+    HMAC plutôt qu'un simple SHA-256 : l'espace des IPv4 est assez petit pour être
+    entièrement testé par force brute, sauf sans la clé secrète.
+    """
+    key = get_settings().app_secret_key.encode()
+    return hmac.new(key, ip_address.encode(), hashlib.sha256).hexdigest()

@@ -1,7 +1,7 @@
 from collections.abc import Awaitable, Callable
 from typing import Annotated
 
-from fastapi import Cookie, Depends
+from fastapi import Cookie, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AuthenticationError, PermissionDeniedError
@@ -42,3 +42,7 @@ def require_roles(*roles: UserRole) -> Callable[[User], Awaitable[User]]:
 
 OwnerOnly = Depends(require_roles(UserRole.OWNER))
 OwnerOrStaff = Depends(require_roles(UserRole.OWNER, UserRole.STAFF))
+
+
+def client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
