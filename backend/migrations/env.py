@@ -14,7 +14,9 @@ config = context.config
 config.set_main_option("sqlalchemy.url", get_settings().database_url.replace("%", "%%"))
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # Sans ce paramètre, Alembic rend muets tous les loggers déjà créés (dont ceux de
+    # l'application quand les migrations tournent dans le même processus, comme en test).
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 
