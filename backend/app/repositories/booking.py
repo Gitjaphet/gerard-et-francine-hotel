@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.booking import BookingStatus
@@ -25,3 +25,20 @@ class BookingRequestRepository:
         self.db.add(booking)
         await self.db.flush()
         return booking
+
+    async def count_overlapping(self, booking: BookingRequest, status: BookingStatus) -> int:
+        """Demandes du même type de chambre, dans ce statut, dont le séjour chevauche celui-ci."""
+        if booking.room_type_id is None:
+            return 0
+        result = await self.db.execute(
+            select(func.count())
+            .select_from(BookingRequest)
+            .where(
+                BookingRequest.id != booking.id,
+                BookingRequest.room_type_id == booking.room_type_id,
+                BookingRequest.status == status,
+                BookingRequest.check_in < booking.check_out,
+                BookingRequest.check_out > booking.check_in,
+            )
+        )
+        return result.scalar_one()

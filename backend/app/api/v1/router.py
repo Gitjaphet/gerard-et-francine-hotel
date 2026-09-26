@@ -1,9 +1,10 @@
 from fastapi import APIRouter
 
-from app.api.deps import OwnerOnly
+from app.api.deps import OwnerOnly, OwnerOrStaff
 from app.api.v1 import (
     amenities,
     auth,
+    booking_admin,
     booking_public,
     hotel,
     hotel_public,
@@ -29,3 +30,6 @@ api_router.include_router(amenities.router, dependencies=[OwnerOnly])
 api_router.include_router(room_types.router, dependencies=[OwnerOnly])
 api_router.include_router(media.router, dependencies=[OwnerOnly])
 api_router.include_router(seasons.router, dependencies=[OwnerOnly])
+
+# --- Admin : propriétaire et réception ---------------------------------------
+api_router.include_router(booking_admin.router, dependencies=[OwnerOrStaff])

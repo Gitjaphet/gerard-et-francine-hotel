@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Self
 
@@ -55,3 +55,47 @@ class BookingRequestReceipt(BaseModel):
     currency: str = "EUR"
     min_nights_required: int | None
     warnings: list[BookingWarning]
+
+
+# --- Réception (admin) -----------------------------------------------------------
+
+
+class BookingRequestAdminRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    reference: str
+    status: BookingStatus
+    room_type_id: int | None
+    room_name: str
+    check_in: date
+    check_out: date
+    adults: int
+    children: int
+    children_ages: list[int]
+    nights_count: int
+    quoted_total: Decimal | None
+    warnings: list[BookingWarning]
+    guest_name: str
+    email: str
+    phone: str | None
+    prefers_whatsapp: bool
+    locale: Locale
+    message: str | None
+    staff_notes: str | None
+    handled_by_id: int | None
+    status_changed_at: datetime | None
+    created_at: datetime
+
+
+class BookingRequestAdminDetail(BookingRequestAdminRead):
+    whatsapp_url: str | None
+    overlapping_confirmed: int
+
+
+class BookingStatusUpdate(BaseModel):
+    status: BookingStatus
+
+
+class BookingNotesUpdate(BaseModel):
+    staff_notes: str | None = Field(default=None, max_length=5000)

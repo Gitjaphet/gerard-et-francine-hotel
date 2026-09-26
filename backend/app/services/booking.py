@@ -1,13 +1,28 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.booking import BookingAssessment, RoomCapacity, assess_booking
-from app.core.exceptions import BusinessRuleError, NotFoundError
+from app.core.booking import (
+    BookingAssessment,
+    BookingStatus,
+    InvalidTransitionError,
+    RoomCapacity,
+    assess_booking,
+    check_transition,
+    whatsapp_url,
+)
+from app.core.exceptions import BusinessRuleError, ConflictError, NotFoundError
 from app.models.booking import BookingRequest
+from app.models.user import User
 from app.repositories.booking import BookingRequestRepository
 from app.repositories.room import RoomTypeRepository
-from app.schemas.booking import BookingRequestCreate
+from app.schemas.booking import (
+    BookingRequestAdminDetail,
+    BookingRequestAdminRead,
+    BookingRequestCreate,
+)
 from app.services.common import pick_translation
 from app.services.quote import QuoteService, hotel_today
 
@@ -68,3 +83,51 @@ class BookingRequestService:
         await self.db.commit()
         await self.db.refresh(booking)
         return CreatedBooking(booking, assessment)
+
+
+class BookingAdminService:
+    def __init__(self, db: AsyncSession) -> None:
+        self.db = db
+        self.repo = BookingRequestRepository(db)
+
+    async def list(self, status: BookingStatus | None = None) -> Sequence[BookingRequest]:
+        return await self.repo.list(status=status)
+
+    async def get(self, booking_id: int) -> BookingRequest:
+        booking = await self.repo.get(booking_id)
+        if booking is None:
+            raise NotFoundError(f"Demande {booking_id} introuvable.")
+        return booking
+
+    async def detail(self, booking_id: int) -> BookingRequestAdminDetail:
+        booking = await self.get(booking_id)
+        overlapping = await self.repo.count_overlapping(booking, BookingStatus.CONFIRMED)
+        return BookingRequestAdminDetail(
+            **BookingRequestAdminRead.model_validate(booking).model_dump(),
+            whatsapp_url=whatsapp_url(booking.phone),
+            overlapping_confirmed=overlapping,
+        )
+
+    async def change_status(
+        self, booking_id: int, target: BookingStatus, user: User
+    ) -> BookingRequest:
+        booking = await self.get(booking_id)
+        try:
+            check_transition(booking.status, target)
+        except InvalidTransitionError as exc:
+            raise ConflictError(str(exc)) from exc
+        booking.status = target
+        booking.handled_by_id = user.id
+        booking.status_changed_at = datetime.now(UTC)
+        return await self._save(booking)
+
+    async def update_notes(self, booking_id: int, notes: str | None, user: User) -> BookingRequest:
+        booking = await self.get(booking_id)
+        booking.staff_notes = notes
+        booking.handled_by_id = user.id
+        return await self._save(booking)
+
+    async def _save(self, booking: BookingRequest) -> BookingRequest:
+        await self.db.commit()
+        await self.db.refresh(booking)
+        return booking

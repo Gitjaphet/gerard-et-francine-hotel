@@ -41,3 +41,4 @@ def require_roles(*roles: UserRole) -> Callable[[User], Awaitable[User]]:
 
 
 OwnerOnly = Depends(require_roles(UserRole.OWNER))
+OwnerOrStaff = Depends(require_roles(UserRole.OWNER, UserRole.STAFF))

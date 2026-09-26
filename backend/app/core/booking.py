@@ -104,3 +104,11 @@ def check_transition(current: BookingStatus, target: BookingStatus) -> None:
         raise InvalidTransitionError(
             f"Une demande {STATUS_LABELS[current]} ne peut pas être {STATUS_LABELS[target]}."
         )
+
+
+def whatsapp_url(phone: str | None) -> str | None:
+    """Lien « cliquer pour discuter » : https://wa.me/ suivi des seuls chiffres du numéro."""
+    if not phone:
+        return None
+    digits = "".join(char for char in phone if char.isdigit())
+    return f"https://wa.me/{digits}" if len(digits) >= 6 else None
