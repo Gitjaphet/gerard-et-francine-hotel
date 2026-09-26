@@ -9,12 +9,15 @@ from app.repositories.hotel import HotelSettingsRepository, SocialLinkRepository
 from app.schemas.hotel import (
     HotelPublic,
     HotelPublicInfo,
+    HotelSettingsFields,
     HotelSettingsTranslationRead,
-    HotelSettingsTranslationWrite,
     HotelSettingsUpdate,
     SocialLinkPublic,
     SocialLinkWrite,
 )
+from app.services.common import pick_translation, sync_translations
+
+HOTEL_SETTINGS_COLUMNS = set(HotelSettingsFields.model_fields)
 
 
 class HotelSettingsService:
@@ -29,7 +32,7 @@ class HotelSettingsService:
         return settings
 
     async def update(self, data: HotelSettingsUpdate) -> HotelSettings:
-        fields = data.model_dump(exclude={"translations"})
+        fields = data.model_dump(include=HOTEL_SETTINGS_COLUMNS)
         settings = await self.repo.get()
 
         if settings is None:
@@ -38,26 +41,11 @@ class HotelSettingsService:
             for name, value in fields.items():
                 setattr(settings, name, value)
 
-        self._sync_translations(settings, data.translations)
+        sync_translations(settings.translations, data.translations, HotelSettingsTranslation)
 
         await self.db.commit()
         await self.db.refresh(settings)
         return settings
-
-    @staticmethod
-    def _sync_translations(
-        settings: HotelSettings,
-        translations: list[HotelSettingsTranslationWrite],
-    ) -> None:
-        existing = {t.locale: t for t in settings.translations}
-        for item in translations:
-            values = item.model_dump(exclude={"locale"})
-            current = existing.get(item.locale)
-            if current is None:
-                settings.translations.append(HotelSettingsTranslation(locale=item.locale, **values))
-            else:
-                for name, value in values.items():
-                    setattr(current, name, value)
 
 
 class SocialLinkService:
@@ -103,8 +91,8 @@ class HotelPublicService:
         settings = await self.settings.get()
         links = await self.links.list(active_only=True)
 
-        by_locale = {t.locale: t for t in settings.translations}
-        translation = by_locale.get(locale) or by_locale.get(DEFAULT_LOCALE)
+        translation = pick_translation(settings.translations, locale)
+        translated = {t.locale for t in settings.translations}
         texts = (
             HotelSettingsTranslationRead.model_validate(translation).model_dump(exclude={"locale"})
             if translation
@@ -116,7 +104,7 @@ class HotelPublicService:
             **texts,
             locale=locale,
             content_locale=translation.locale if translation else DEFAULT_LOCALE,
-            available_locales=[loc for loc in Locale if loc in by_locale],
+            available_locales=[loc for loc in Locale if loc in translated],
             mga_rate=settings.eur_to_mga_rate if settings.show_mga_prices else None,
             social_links=[SocialLinkPublic.model_validate(link) for link in links],
         )
