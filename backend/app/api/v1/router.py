@@ -4,6 +4,7 @@ from app.api.deps import OwnerOnly
 from app.api.v1 import (
     amenities,
     auth,
+    booking_public,
     hotel,
     hotel_public,
     media,
@@ -19,6 +20,7 @@ api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth.router)
 api_router.include_router(hotel_public.router)
 api_router.include_router(rooms_public.router)
+api_router.include_router(booking_public.router)
 
 # --- Admin : propriétaire uniquement ------------------------------------------
 api_router.include_router(hotel.router, dependencies=[OwnerOnly])

@@ -41,9 +41,19 @@ class QuoteService:
         if check_in < hotel_today():
             raise BusinessRuleError("La date d'arrivée ne peut pas être dans le passé.")
 
+        season_prices = await self.season_prices(room_type, check_in, check_out)
+        try:
+            return quote_stay(check_in, check_out, room_type.base_price, season_prices)
+        except PricingError as exc:
+            raise BusinessRuleError(str(exc)) from exc
+
+    async def season_prices(
+        self, room_type: RoomType, check_in: date, check_out: date
+    ) -> list[SeasonPrice]:
+        """Les saisons qui touchent le séjour, vues depuis ce type de chambre."""
         last_night = max(check_in, check_out - timedelta(days=1))
         seasons = await self.seasons.list_overlapping(check_in, last_night)
-        season_prices = [
+        return [
             SeasonPrice(
                 start_date=season.start_date,
                 end_date=season.end_date,
@@ -52,7 +62,3 @@ class QuoteService:
             )
             for season in seasons
         ]
-        try:
-            return quote_stay(check_in, check_out, room_type.base_price, season_prices)
-        except PricingError as exc:
-            raise BusinessRuleError(str(exc)) from exc
