@@ -74,3 +74,33 @@ def assess_booking(
         min_nights_required=min_nights_required,
         warnings=warnings,
     )
+
+
+# --- Transitions de statut -------------------------------------------------------
+
+STATUS_LABELS: dict[BookingStatus, str] = {
+    BookingStatus.PENDING: "en attente",
+    BookingStatus.CONFIRMED: "confirmée",
+    BookingStatus.DECLINED: "refusée",
+    BookingStatus.CANCELLED: "annulée",
+}
+
+ALLOWED_TRANSITIONS: dict[BookingStatus, frozenset[BookingStatus]] = {
+    BookingStatus.PENDING: frozenset(
+        {BookingStatus.CONFIRMED, BookingStatus.DECLINED, BookingStatus.CANCELLED}
+    ),
+    BookingStatus.CONFIRMED: frozenset({BookingStatus.CANCELLED}),
+    BookingStatus.DECLINED: frozenset(),
+    BookingStatus.CANCELLED: frozenset(),
+}
+
+
+class InvalidTransitionError(ValueError):
+    pass
+
+
+def check_transition(current: BookingStatus, target: BookingStatus) -> None:
+    if target not in ALLOWED_TRANSITIONS[current]:
+        raise InvalidTransitionError(
+            f"Une demande {STATUS_LABELS[current]} ne peut pas être {STATUS_LABELS[target]}."
+        )
