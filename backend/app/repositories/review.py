@@ -46,3 +46,17 @@ class ReviewRepository:
             .group_by(Review.rating)
         )
         return dict(result.all())
+
+    async def get(self, review_id: int) -> Review | None:
+        return await self.db.get(Review, review_id)
+
+    async def list(self, *, status: ReviewStatus | None = None) -> Sequence[Review]:
+        query = select(Review).order_by(Review.created_at.desc(), Review.id.desc())
+        if status is not None:
+            query = query.where(Review.status == status)
+        result = await self.db.execute(query)
+        return result.scalars().all()
+
+    async def delete(self, review: Review) -> None:
+        await self.db.delete(review)
+        await self.db.flush()

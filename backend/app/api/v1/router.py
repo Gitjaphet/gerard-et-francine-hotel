@@ -9,6 +9,7 @@ from app.api.v1 import (
     hotel,
     hotel_public,
     media,
+    reviews_admin,
     reviews_public,
     room_types,
     rooms_public,
@@ -35,3 +36,4 @@ api_router.include_router(seasons.router, dependencies=[OwnerOnly])
 
 # --- Admin : propriétaire et réception ---------------------------------------
 api_router.include_router(booking_admin.router, dependencies=[OwnerOrStaff])
+api_router.include_router(reviews_admin.router, dependencies=[OwnerOrStaff])

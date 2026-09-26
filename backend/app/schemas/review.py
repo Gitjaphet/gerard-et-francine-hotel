@@ -1,9 +1,11 @@
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.core.i18n import DEFAULT_LOCALE, Locale
+from app.core.review import ReviewStatus
 
 
 class ReviewCreate(BaseModel):
@@ -54,3 +56,23 @@ class ReviewReceipt(BaseModel):
     """Réponse au dépôt : l'avis attend la modération, il n'est pas encore visible."""
 
     status: str = "pending"
+
+
+# --- Modération (admin) -------------------------------------------------------------
+
+
+class ReviewAdminRead(ReviewPublic):
+    status: ReviewStatus
+    email: str
+    moderated_by_id: int | None
+    moderated_at: datetime | None
+
+
+class ReviewModeration(BaseModel):
+    status: Literal[ReviewStatus.APPROVED, ReviewStatus.REJECTED]
+
+
+class ReviewReply(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    owner_reply: str | None = Field(default=None, max_length=2000)
