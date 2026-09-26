@@ -2,6 +2,7 @@ from app.models.booking import BookingRequest
 from app.models.hotel import HotelSettings, HotelSettingsTranslation, SocialLink
 from app.models.login_attempt import LoginAttempt
 from app.models.media import MediaAsset, MediaAssetTranslation
+from app.models.review import Review
 from app.models.room import (
     Amenity,
     AmenityTranslation,
@@ -21,6 +22,7 @@ __all__ = [
     "LoginAttempt",
     "MediaAsset",
     "MediaAssetTranslation",
+    "Review",
     "RoomType",
     "RoomTypePhoto",
     "RoomTypeTranslation",
