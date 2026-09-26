@@ -1,3 +1,4 @@
+from app.models.booking import BookingRequest
 from app.models.hotel import HotelSettings, HotelSettingsTranslation, SocialLink
 from app.models.login_attempt import LoginAttempt
 from app.models.media import MediaAsset, MediaAssetTranslation
@@ -14,6 +15,7 @@ from app.models.user import User
 __all__ = [
     "Amenity",
     "AmenityTranslation",
+    "BookingRequest",
     "HotelSettings",
     "HotelSettingsTranslation",
     "LoginAttempt",
