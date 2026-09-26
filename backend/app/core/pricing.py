@@ -12,6 +12,14 @@ class PricingError(ValueError):
     pass
 
 
+class MissingPriceError(PricingError):
+    pass
+
+
+class MinimumStayError(PricingError):
+    pass
+
+
 @dataclass(frozen=True)
 class SeasonPrice:
     """Une saison vue depuis un type de chambre donné. Dates incluses."""
@@ -35,6 +43,7 @@ class NightPrice:
 class StayQuote:
     nights: list[NightPrice]
     total: Decimal
+    min_nights_required: int = 1
 
     @property
     def nights_count(self) -> int:
@@ -46,6 +55,8 @@ def quote_stay(
     check_out: date,
     base_price: Decimal | None,
     seasons: Sequence[SeasonPrice],
+    *,
+    enforce_min_stay: bool = True,
 ) -> StayQuote:
     nights_count = (check_out - check_in).days
     if nights_count < 1:
@@ -61,12 +72,16 @@ def quote_stay(
 
         price = season.price if season and season.price is not None else base_price
         if price is None:
-            raise PricingError(f"Aucun tarif n'est défini pour la nuit du {night:%d/%m/%Y}.")
+            raise MissingPriceError(f"Aucun tarif n'est défini pour la nuit du {night:%d/%m/%Y}.")
         if season and season.min_nights:
             required_nights = max(required_nights, season.min_nights)
         nights.append(NightPrice(night, price))
 
-    if nights_count < required_nights:
-        raise PricingError(f"Séjour minimum de {required_nights} nuits sur ces dates.")
+    if enforce_min_stay and nights_count < required_nights:
+        raise MinimumStayError(f"Séjour minimum de {required_nights} nuits sur ces dates.")
 
-    return StayQuote(nights=nights, total=sum((n.price for n in nights), Decimal("0")))
+    return StayQuote(
+        nights=nights,
+        total=sum((n.price for n in nights), Decimal("0")),
+        min_nights_required=required_nights,
+    )

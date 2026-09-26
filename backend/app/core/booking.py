@@ -1,4 +1,10 @@
+from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal
 from enum import StrEnum
+
+from app.core.pricing import MissingPriceError, SeasonPrice, quote_stay
 
 
 class BookingStatus(StrEnum):
@@ -12,3 +18,59 @@ class BookingWarning(StrEnum):
     OVER_CAPACITY = "over_capacity"
     MIN_STAY_NOT_MET = "min_stay_not_met"
     PRICE_UNAVAILABLE = "price_unavailable"
+
+
+# --- Évaluation d'une demande ----------------------------------------------------
+# Logique pure : la demande n'est jamais refusée pour une règle de l'hôtel,
+# les écarts deviennent des avertissements traités par la réception.
+
+
+@dataclass(frozen=True)
+class RoomCapacity:
+    max_adults: int
+    max_children: int
+
+
+@dataclass(frozen=True)
+class BookingAssessment:
+    nights_count: int
+    quoted_total: Decimal | None
+    min_nights_required: int | None
+    warnings: list[BookingWarning]
+
+
+def assess_booking(
+    *,
+    check_in: date,
+    check_out: date,
+    adults: int,
+    children: int,
+    capacity: RoomCapacity,
+    base_price: Decimal | None,
+    seasons: Sequence[SeasonPrice],
+) -> BookingAssessment:
+    warnings: list[BookingWarning] = []
+
+    if adults > capacity.max_adults or adults + children > (
+        capacity.max_adults + capacity.max_children
+    ):
+        warnings.append(BookingWarning.OVER_CAPACITY)
+
+    quoted_total: Decimal | None = None
+    min_nights_required: int | None = None
+    try:
+        quote = quote_stay(check_in, check_out, base_price, seasons, enforce_min_stay=False)
+    except MissingPriceError:
+        warnings.append(BookingWarning.PRICE_UNAVAILABLE)
+    else:
+        quoted_total = quote.total
+        min_nights_required = quote.min_nights_required
+        if quote.nights_count < quote.min_nights_required:
+            warnings.append(BookingWarning.MIN_STAY_NOT_MET)
+
+    return BookingAssessment(
+        nights_count=(check_out - check_in).days,
+        quoted_total=quoted_total,
+        min_nights_required=min_nights_required,
+        warnings=warnings,
+    )
