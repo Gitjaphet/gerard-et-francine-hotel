@@ -14,6 +14,7 @@ from app.models.room import (
 from app.repositories.media import MediaAssetRepository
 from app.repositories.room import AmenityRepository, RoomTypeRepository
 from app.schemas.room import (
+    AmenityFields,
     AmenityPublic,
     AmenityWrite,
     RoomPhotoPublic,
@@ -31,6 +32,7 @@ from app.storage.base import Storage
 # Colonnes simples copiées du schema vers le modèle. Liste blanche : un champ ajouté
 # au schema (relation, identifiants…) ne peut pas s'y glisser par accident.
 ROOM_TYPE_COLUMNS = set(RoomTypeFields.model_fields)
+AMENITY_COLUMNS = set(AmenityFields.model_fields)
 
 
 class AmenityService:
@@ -49,7 +51,7 @@ class AmenityService:
 
     async def create(self, data: AmenityWrite) -> Amenity:
         await self._ensure_code_available(data.code)
-        amenity = Amenity(**data.model_dump(exclude={"translations"}), translations=[])
+        amenity = Amenity(**data.model_dump(include=AMENITY_COLUMNS), translations=[])
         sync_translations(amenity.translations, data.translations, AmenityTranslation)
         await self.repo.add(amenity)
         return await self._save(amenity)
@@ -57,7 +59,7 @@ class AmenityService:
     async def update(self, amenity_id: int, data: AmenityWrite) -> Amenity:
         amenity = await self.get(amenity_id)
         await self._ensure_code_available(data.code, exclude_id=amenity_id)
-        for name, value in data.model_dump(exclude={"translations"}).items():
+        for name, value in data.model_dump(include=AMENITY_COLUMNS).items():
             setattr(amenity, name, value)
         sync_translations(amenity.translations, data.translations, AmenityTranslation)
         return await self._save(amenity)
